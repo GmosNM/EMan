@@ -35,3 +35,8 @@ for building cmake and moving the compile_commands.json to the current dir (cus 
 ```console
 $ EMan build
 ```
+
+for updateing the cmake file and .eman file (it auto add the src folder files)
+```console
+$ EMan update
+```
