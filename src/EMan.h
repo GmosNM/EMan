@@ -17,7 +17,7 @@ public:
     std::string getSecondPackageLink(std::string packagename);
     void createCMakeFile();
     std::vector<std::string> getFilesInDirectory(std::string directoryPath);
-    void build(); // added function
+    void build();
 
 private:
     std::vector<std::pair<std::string, std::string>> packages = {
@@ -27,6 +27,8 @@ private:
             {"glad", "https://github.com/GmosNM/glad"},
             {"glm", "https://github.com/g-truc/glm"},
     };
-
+    std::vector<std::string> needInclude;
+    std::vector<std::string> needLib;
+    std::vector<std::string> needAddSubdir;
 };
 

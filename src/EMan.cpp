@@ -1,4 +1,5 @@
 #include "EMan.h"
+#include <string>
 
 
 namespace fs = std::experimental::filesystem;
@@ -128,6 +129,10 @@ void EMan::createCMakeFile(){
 
 std::vector<std::string> EMan::getFilesInDirectory(std::string directoryPath) {
     std::vector<std::string> files;
+    if (!fs::exists(directoryPath)) {
+        std::cerr << "Directory does not exist: " << directoryPath << std::endl;
+        return files;
+    }
     for (const auto &entry : std::experimental::filesystem::directory_iterator(directoryPath)) {
         if (entry.status().type() == std::experimental::filesystem::file_type::directory) {
             files.push_back(entry.path().filename().string());
