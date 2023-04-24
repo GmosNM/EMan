@@ -1,3 +1,0 @@
-D:/dev/PKG-Manager/bld/CMakeFiles/EMan.dir
-D:/dev/PKG-Manager/bld/CMakeFiles/edit_cache.dir
-D:/dev/PKG-Manager/bld/CMakeFiles/rebuild_cache.dir
