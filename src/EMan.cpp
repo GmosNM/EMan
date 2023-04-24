@@ -9,6 +9,7 @@ void EMan::addPackage(std::string name){
     if (checkForPackage(name)) {
         createDirectory(name);
         cloneFromGithub(getSecondPackageLink(name), " packages\\" + name);
+        updateEManFile();
     }
 }
 
@@ -82,10 +83,13 @@ void EMan::createCMakeFile(){
     std::cin >> mainFileLocation;
     std::cout << "Enter the build system: ";
     std::cin >> buildSystem;
+    setProjectName(projectName);
+    createEManFile();
     
     std::ofstream cmakeFile(".\\CMakeLists.txt");
     cmakeFile << "cmake_minimum_required(VERSION 3.5)\n";
-    cmakeFile << "project(" << projectName << ")\n\n";
+    cmakeFile << "\n# EMAN-PROJECT = " << projectName;
+    cmakeFile << "\nproject(" << projectName << ")\n\n";
     cmakeFile << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n";
     cmakeFile << "\n";
     std::vector<std::string> files = getFilesInDirectory("./packages");
@@ -94,6 +98,7 @@ void EMan::createCMakeFile(){
             cmakeFile << "";
         }else{
             cmakeFile << "\nadd_subdirectory(";
+            cmakeFile << "\n# EMAN-PACKAGE = " << file;
             cmakeFile << "\n\tpackages/" << file << "";
             cmakeFile << "\n)";
         }
@@ -103,8 +108,10 @@ void EMan::createCMakeFile(){
     cmakeFile << "\n\ninclude_directories( " << projectName;
     for (const auto& file : files) {
         if (file == "glm") {
+            cmakeFile << "\n# EMAN-PACKAGE = " << file;
             cmakeFile << "\n\t"<< "packages/" << file;
         }else{
+            cmakeFile << "\n# EMAN-PACKAGE = " << file;
             cmakeFile << "\n\t"<< "packages/" << file << "/include";
         }
     }
@@ -115,6 +122,7 @@ void EMan::createCMakeFile(){
         if (file == "glm") {
             cmakeFile << "";
         }else{
+            cmakeFile << "\n# EMAN-PACKAGE = " << file;
             cmakeFile << "\n\t" << file;
         }
     }
@@ -125,6 +133,7 @@ void EMan::createCMakeFile(){
         return;
     }
 }
+
 
 
 std::vector<std::string> EMan::getFilesInDirectory(std::string directoryPath) {
@@ -156,3 +165,47 @@ void EMan::build(){
     system(command2.c_str()); 
 }
 
+
+void EMan::createEManFile(){
+    std::ofstream emanFile(".\\.eman");
+    std::vector<std::string> files = getFilesInDirectory("./packages");
+    std::string project = getProjectName();
+    emanFile << "PROJECT :: " << project << "\n";
+    for (const auto& file : files) {
+        emanFile << "PACKAGE :: " << file << "\n";
+    }
+    emanFile.close();
+}
+
+
+void EMan::setProjectName(std::string name){
+    projectName = name;
+}
+
+std::string EMan::getProjectName(){
+    return projectName;
+}
+
+void EMan::updateEManFile(){
+    std::string emanFilePath = ".\\.eman";
+    if (!fs::exists(emanFilePath)) {
+        return;
+    }
+    std::vector<std::string> files = getFilesInDirectory("./packages");
+    std::ifstream cmakeFile(".\\CMakeLists.txt");
+    std::string emanProjectLine;
+    while (std::getline(cmakeFile, emanProjectLine)) {
+        if (emanProjectLine.find("# EMAN-PROJECT =") != std::string::npos) {
+            std::string emanProjectName = emanProjectLine.substr(emanProjectLine.find("=") + 2);
+            std::ofstream emanFile(emanFilePath);
+            setProjectName(emanFilePath);
+            emanFile << "PROJECT :: " << emanProjectName << "\n";
+            for (const auto& file : files) {
+                emanFile << "PACKAGE :: " << file << "\n";
+            }
+            emanFile.close();
+            break;
+        }
+    }
+    cmakeFile.close();
+}

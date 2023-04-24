@@ -18,8 +18,13 @@ public:
     void createCMakeFile();
     std::vector<std::string> getFilesInDirectory(std::string directoryPath);
     void build();
+    void createEManFile();
+    void setProjectName(std::string name);
+    std::string getProjectName();
+    void updateEManFile();
 
 private:
+    std::string projectName;
     std::vector<std::pair<std::string, std::string>> packages = {
             {"glfw", "https://github.com/glfw/glfw"},
             {"sdl2", "https://github.com/libsdl-org/SDL"},
