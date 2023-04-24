@@ -21,6 +21,7 @@ int main(int argc, char* argv[]) {
         } else if (command == "remove") {
 
         } else if (command == "update") {
+            manager.updateCMakeFile();
             manager.updateEManFile();
         } else if (command == "cmake") {
             manager.createCMakeFile();

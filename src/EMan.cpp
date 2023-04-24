@@ -1,5 +1,4 @@
 #include "EMan.h"
-#include <string>
 
 
 namespace fs = std::experimental::filesystem;
@@ -79,8 +78,6 @@ void EMan::createCMakeFile(){
     std::string buildSystem;
     std::cout << "Enter project name: ";
     std::cin >> projectName;
-    std::cout << "Enter main file location: ";
-    std::cin >> mainFileLocation;
     std::cout << "Enter the build system: ";
     std::cin >> buildSystem;
     setProjectName(projectName);
@@ -103,7 +100,19 @@ void EMan::createCMakeFile(){
             cmakeFile << "\n)";
         }
     }
-    cmakeFile << "\n\n" << "set(SRC\n \t " << mainFileLocation << "\n)\n\n";
+    cmakeFile << "\n# EMAN-SRC";
+    cmakeFile << "\n";
+    std::string srcDir = "./src";
+    if (fs::exists(srcDir)) {
+        std::set<std::string> srcFiles = checkSourceDir(srcDir);
+        cmakeFile << "set(SRC\n";
+        for (const auto& file : srcFiles) {
+            std::string fileName = file.substr(file.find_last_of("/\\") + 1);
+            cmakeFile << "\t" << "src/" << fileName << "\n";
+        }
+        cmakeFile << ")\n\n";
+    }
+
     cmakeFile << "add_executable(" << projectName << " " << "${SRC}" << ")\n";
     cmakeFile << "\n\ninclude_directories( " << projectName;
     for (const auto& file : files) {
@@ -133,6 +142,25 @@ void EMan::createCMakeFile(){
         return;
     }
 }
+
+std::set<std::string> EMan::checkSourceDir(std::string directoryPath) {
+    std::set<std::string> files;
+    std::vector<std::string> allowedExtensions = {".cpp", ".c", ".h", ".hpp"};
+    if (!fs::exists(directoryPath)) {
+        std::cerr << "Directory does not exist: " << directoryPath << std::endl;
+        return files;
+    }
+    for (const auto &entry : std::experimental::filesystem::directory_iterator(directoryPath)) {
+        if (entry.status().type() == std::experimental::filesystem::file_type::regular) {
+            std::string extension = entry.path().extension().string();
+            if (std::find(allowedExtensions.begin(), allowedExtensions.end(), extension) != allowedExtensions.end()) {
+                files.insert(entry.path().string());
+            }
+        }
+    }
+    return files;
+}
+
 
 
 
@@ -169,13 +197,21 @@ void EMan::build(){
 void EMan::createEManFile(){
     std::ofstream emanFile(".\\.eman");
     std::vector<std::string> files = getFilesInDirectory("./packages");
+    std::set<std::string> src_files = checkSourceDir("./src");
     std::string project = getProjectName();
     emanFile << "PROJECT :: " << project << "\n";
     for (const auto& file : files) {
         emanFile << "PACKAGE :: " << file << "\n";
     }
+    emanFile << "EMAN-SRC ::\n"; 
+    for (const auto& file : src_files) {
+        std::string fileName = file.substr(file.find_last_of("/\\") + 1);
+        std::string dirName = file.substr(0, file.find_last_of("/\\") + 1);
+        emanFile << "\t" << dirName << fileName << "\n";
+    }
     emanFile.close();
 }
+
 
 
 void EMan::setProjectName(std::string name){
@@ -192,6 +228,7 @@ void EMan::updateEManFile(){
         return;
     }
     std::vector<std::string> files = getFilesInDirectory("./packages");
+    std::set<std::string> src_files = checkSourceDir("./src");
     std::ifstream cmakeFile(".\\CMakeLists.txt");
     std::string emanProjectLine;
     while (std::getline(cmakeFile, emanProjectLine)) {
@@ -203,9 +240,84 @@ void EMan::updateEManFile(){
             for (const auto& file : files) {
                 emanFile << "PACKAGE :: " << file << "\n";
             }
+            emanFile << "EMAN-SRC ::\n"; 
+            for (const auto& file : src_files) {
+                std::string fileName = file.substr(file.find_last_of("/\\") + 1);
+                std::string dirName = file.substr(0, file.find_last_of("/\\") + 1);
+                emanFile << "\t" << dirName << fileName << "\n";
+            }
             emanFile.close();
             break;
         }
     }
     cmakeFile.close();
+}
+
+void EMan::updateCMakeFile(){
+    std::string cmakeFilePath = "./CMakeLists.txt";
+    if (!fs::exists(cmakeFilePath)) {
+        return;
+    }
+    std::ifstream cmakeFile(cmakeFilePath);
+    std::string line;
+    std::stringstream updatedCmakeContents;
+    std::set<std::string> existingFiles;
+    std::vector<std::string> allowedExtensions = {".cpp", ".c", ".h", ".hpp"};
+    bool setSrcFound = false;
+    while (std::getline(cmakeFile, line)) {
+        if (line.find("set(SRC") != std::string::npos) {
+            if (!setSrcFound) {
+                updatedCmakeContents << "set(SRC\n";
+                std::set<std::string> src_files = checkSourceDir("./src");
+                for (const auto& file : src_files) {
+                    std::string fileName = file.substr(file.find_last_of("/\\") + 1);
+                    std::string dirName = file.substr(0, file.find_last_of("/\\") + 1);
+                    std::string filePath = dirName + fileName;
+                    updatedCmakeContents << "\t" << "src/" << fileName << "\n";
+                    existingFiles.insert(fileName);
+                }
+                setSrcFound = true;
+            }
+        } else {
+            bool fileFound = false;
+            for (const auto& ext : allowedExtensions) {
+                if (line.find(ext) != std::string::npos) { 
+                    std::string fileName = line.substr(line.find_last_of("/\\") + 1);
+                    if (existingFiles.find(fileName) == existingFiles.end()) { 
+                        existingFiles.insert(fileName);
+                    } else {
+                        fileFound = true;
+                        break;
+                    }
+                }
+            }
+            if (!fileFound) {
+                updatedCmakeContents << line << "\n";
+            }
+        }
+    }
+    if (!setSrcFound) {
+        updatedCmakeContents << "set(SRC\n";
+        std::set<std::string> src_files = checkSourceDir("./src");
+        for (const auto& file : src_files) {
+            std::string fileName = file.substr(file.find_last_of("/\\") + 1);
+            std::string dirName = file.substr(0, file.find_last_of("/\\") + 1);
+            std::string filePath = dirName + fileName;
+            updatedCmakeContents << "\t" << "src/" << fileName << "\n";
+            existingFiles.insert(fileName);
+        }
+    }
+    for (const auto& ext : allowedExtensions) {
+        std::set<std::string> files = checkSourceDir("./src");
+        for (const auto& file : files) {
+            std::string fileName = file.substr(file.find_last_of("/\\") + 1);
+            if (existingFiles.find(fileName) == existingFiles.end()) {
+                updatedCmakeContents << "add_executable(" << fileName.substr(0, fileName.find_last_of(".")) << " " << file << ")\n";
+            }
+        }
+    }
+    cmakeFile.close();
+    std::ofstream updatedCmakeFile(cmakeFilePath);
+    updatedCmakeFile << updatedCmakeContents.str();
+    updatedCmakeFile.close();
 }

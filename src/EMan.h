@@ -5,6 +5,9 @@
 #include <vector>
 #include <cstdlib>
 #include <stdlib.h>
+#include <set>
+#include <sstream>
+
 
 class EMan {
 public:
@@ -22,6 +25,8 @@ public:
     void setProjectName(std::string name);
     std::string getProjectName();
     void updateEManFile();
+    std::set<std::string> checkSourceDir(std::string directoryPath);
+    void updateCMakeFile();
 
 private:
     std::string projectName;
