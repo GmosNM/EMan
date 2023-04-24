@@ -29,3 +29,9 @@ for creating cmake file for all the packages you added
 $ EMan cmake
 ```
 ![image](https://user-images.githubusercontent.com/37900384/234088751-08afdeef-baab-4a31-a062-15bc6dc368ec.png)
+
+
+for building cmake and moving the compile_commands.json to the current dir (cus i use nvim)
+```console
+$ EMan build
+```
