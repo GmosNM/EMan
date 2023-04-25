@@ -18,8 +18,8 @@ int main(int argc, char* argv[]) {
         std::string command = argv[1];
         if (command == "add" && argc == 3) {
             manager.addPackage(argv[2]);
-        } else if (command == "remove") {
-
+        } else if (command == "remove" && argc == 3) {
+            manager.removePackage(argv[2]);
         } else if (command == "update") {
             manager.updateCMakeFile();
             manager.updateEManFile();

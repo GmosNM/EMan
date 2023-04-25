@@ -94,10 +94,12 @@ void EMan::createCMakeFile(){
         if (file == "glm") {
             cmakeFile << "";
         }else{
+            cmakeFile << "\n# EMAN-PACKAGE = " << file;
             cmakeFile << "\nadd_subdirectory(";
             cmakeFile << "\n# EMAN-PACKAGE = " << file;
             cmakeFile << "\n\tpackages/" << file << "";
-            cmakeFile << "\n)";
+            cmakeFile << "\n# EMAN-PACKAGE = " << file;
+            cmakeFile << "\n)\n";
         }
     }
     cmakeFile << "\n# EMAN-SRC";
@@ -320,4 +322,71 @@ void EMan::updateCMakeFile(){
     std::ofstream updatedCmakeFile(cmakeFilePath);
     updatedCmakeFile << updatedCmakeContents.str();
     updatedCmakeFile.close();
+}
+
+void EMan::removePackage(std::string packageName) {
+    std::string emanFilePath = ".\\.eman";
+    std::string packagePath = "./packages/" + packageName;
+    if (!fs::exists(emanFilePath) || !fs::exists(packagePath)) {
+        return;
+    }
+    std::ifstream emanFile(emanFilePath);
+    std::stringstream updatedEmanContents;
+    std::string line;
+    bool packageFound = false;
+    while (std::getline(emanFile, line)) {
+        if (line.find("PACKAGE :: " + packageName) != std::string::npos) {
+            packageFound = true;
+            // Search for EMAN-PACKAGE = {packagename} in the cmake file and delete the line under it and delete the line itself
+            std::ifstream cmakeFile("./CMakeLists.txt");
+            std::string cmakeFilePath = "./CMakeLists.txt";
+            std::stringstream updatedCmakeContents;
+            std::string cmakeLine;
+            bool packageLineFound = false;
+            while (std::getline(cmakeFile, cmakeLine)) {
+                if (cmakeLine.find("EMAN-PACKAGE = " + packageName) != std::string::npos) {
+                    packageLineFound = true;
+                    continue;
+                }
+                if (packageLineFound) {
+                    packageLineFound = false;
+                    continue;
+                }
+                updatedCmakeContents << cmakeLine << "\n";
+            }
+            cmakeFile.close();
+            std::ofstream updatedCmakeFile(cmakeFilePath);
+            updatedCmakeFile << updatedCmakeContents.str();
+            updatedCmakeFile.close();
+            // Remove the comment and the line after it
+            std::string line;
+            while (std::getline(emanFile, line)) {
+                if (line.find("//") != std::string::npos) {
+                    std::getline(emanFile, line);
+                    continue;
+                }
+                updatedEmanContents << line << "\n";
+            }
+        } else {
+            updatedEmanContents << line << "\n";
+        }
+    }
+    emanFile.close();
+    if (!packageFound) {
+        return;
+    }
+    std::ofstream updatedEmanFile(emanFilePath);
+    updatedEmanFile << updatedEmanContents.str();
+    updatedEmanFile.close();
+    std::string packageFilePath = "./packages/" + packageName + "/package.json";
+    std::remove(packageFilePath.c_str());
+    std::remove(packagePath.c_str());
+    std::string command;
+    #ifdef _WIN32
+        command = "rmdir /s /q \"" + packagePath + "\"";
+    #else
+        command = "rm -rf " + packagePath;
+    #endif
+    system(command.c_str());
+    updateCMakeFile();
 }

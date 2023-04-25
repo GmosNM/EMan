@@ -12,6 +12,7 @@
 class EMan {
 public:
     void addPackage(std::string);
+    void removePackage(std::string);
     void createDirectory(std::string);
     bool checkForPackage(std::string packageName);
     std::vector<std::pair<std::string, std::string>> getPackages();
